@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>レイヤ用半透明PNG作成</title>
+  <meta name="description" content="レイヤー合成やデザインに使える半透明PNG画像を、ブラウザだけで手軽に作成できる無料Webアプリです。画像はサーバーに送信されず、安心してご利用いただけます。">
+
+  <link rel="stylesheet" href="../../styles/style.css">
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #eee;
+      text-align: center;
+      padding: 20px;
+    }
+
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px;
+      cursor: crosshair;
+    }
+
+    .controls {
+      margin: 10px;
+    }
+
+    .checkerboard {
+      background: repeating-conic-gradient(#ccc 0% 25%, white 0% 50%) 0% 0% / 20px 20px;
+    }
+
+    .palette {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      border: 1px solid #333;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+
+
+    .description {
+      text-align: left;
+      background: #f8fafd;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      display: inline-block;
+      padding: 14px 20px;
+      margin-bottom: 18px;
+    }
+
+    .controls {
+      text-align: left;
+      background: #f8fafd;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      display: inline-block;
+      padding: 14px 20px;
+      margin-bottom: 18px;
+    }
+
+    #dropZone {
+      border: 3px dashed #ccc;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+      background: #fff;
+      display: inline-block;
+      min-width: 320px;
+    }
+
+    #dropZone.dragover {
+      border-color: #4A90E2;
+      background: #eef6ff;
+      transform: scale(1.02);
+    }
+
+    button {
+      padding: 8px 16px;
+      font-weight: bold;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    #processBtn {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    #saveBtn {
+      background-color: #2196F3;
+      color: white;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>半透明PNG作成ツール</h1>
+  <h2>レイヤー合成用の半透明素材を手軽に作成</h2>
+  <p class="description" style="max-width:500px; margin: 0 auto 18px auto;">
+    レイヤー合成用の半透明素材を手軽に作成できるアプリです。<br>
+    「変換実行」後に表示された画像は、右クリック（スマホの場合は長押しなど）で保存してご利用いただけます。<br>
+    画像データはサーバーに送信されないため、安心してお使いいただけます。
+  </p>
+
+  <br>
+  <div id="dropZone">
+    <div class="controls">
+      <!-- ステップ1: ファイル選択 -->
+      <div style="margin-bottom: 12px;">
+        <label for="fileInput"><strong>1. 画像ファイルを選択、またはここにドラッグ＆ドロップ：</strong></label><br>
+        <input type="file" id="fileInput" accept="image/*" style="margin-top: 8px;">
+      </div>
+
+    <!-- ステップ2: 色選択 -->
+    <div style="margin-bottom: 12px;">
+      <strong>2. 透明にしたい色を画像上でクリック</strong>
+      <span>選択色：</span>
+      <div id="colorBox" class="palette"
+        style="display:inline-block; vertical-align:middle; width:24px; height:24px; border:1px solid #ccc; margin-left:4px;">
+      </div>
+    </div>
+
+    <!-- ステップ3: パラメータ調整 -->
+    <div style="margin-bottom: 12px;">
+      <label><strong>3. 色の範囲：</strong>
+        <input type="range" id="intensity" min="0" max="255" value="60">
+      </label>
+      <br>
+      <label><strong>4. 透過度の強さ：</strong>
+        <input type="range" id="strength" min="0" max="255" value="200">
+      </label>
+    </div>
+
+    <!-- ステップ4: オプション -->
+    <div style="margin-bottom: 12px;">
+      <label>
+        <input type="checkbox" id="fullTransparentMode">
+        オプション．被写体以外を完全に透明にする
+      </label>
+      <div id="bgThresholdControl" style="display:none; margin-top:8px;">
+        <label>
+          四隅が背景の場合、それの近似色を完全に透明にすることができます。<br>
+          背景判定の閾値：
+          <input type="range" id="bgThreshold" min="5" max="100" value="40">
+          <span id="bgThresholdValue">40</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 「変換実行」ボタン部分の修正版 -->
+    <div style="margin-bottom: 12px;">
+      <label><strong>5. 変換を実行：</strong></label>
+      <button id="processBtn">変換実行</button>
+      <button id="saveBtn" disabled>画像を保存</button>
+    </div>
+  </div>
+  </div>
+
+  <div>
+    <canvas id="originalCanvas" width="300" height="300" style="width:300px; height:300px;"
+      class="checkerboard"></canvas>
+    <canvas id="resultCanvas" width="300" height="300" style="width:300px; height:300px;" class="checkerboard"></canvas>
+  </div>
+  <footer>
+    <p>&copy; 2025 DS Soft. All rights reserved.<br>
+  </footer>
+  <script src="transpng.js"></script>
+</body>
+
+</html>
