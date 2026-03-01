@@ -3,177 +3,355 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>レイヤ用半透明PNG作成</title>
-  <meta name="description" content="レイヤー合成やデザインに使える半透明PNG画像を、ブラウザだけで手軽に作成できる無料Webアプリです。画像はサーバーに送信されず、安心してご利用いただけます。">
-
-  <link rel="stylesheet" href="../../styles/style.css">
+  <title>Transparent PNG Studio</title>
+  <meta name="description" content="高度な色空間処理と勾配検知アルゴリズムを用いた、プロ仕様の半透明PNG作成ツール。ブラウザ完結でプライバシーも安心。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
     body {
-      font-family: sans-serif;
-      background: #eee;
-      text-align: center;
-      padding: 20px;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      margin: 0;
+      padding: 40px 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    canvas {
-      border: 1px solid #ccc;
-      margin: 10px;
-      cursor: crosshair;
+    h1 {
+      font-weight: 700;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    .controls {
-      margin: 10px;
+    .subtitle {
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      font-weight: 300;
     }
 
-    .checkerboard {
-      background: repeating-conic-gradient(#ccc 0% 25%, white 0% 50%) 0% 0% / 20px 20px;
+    .main-container {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 30px;
+      max-width: 1200px;
+      width: 100%;
     }
 
-    .palette {
-      display: inline-block;
-      width: 50px;
-      height: 50px;
-      border: 1px solid #333;
-      vertical-align: middle;
-      margin-left: 10px;
+    .glass-panel {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
-
-    .description {
-      text-align: left;
-      background: #f8fafd;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-      display: inline-block;
-      padding: 14px 20px;
-      margin-bottom: 18px;
+    .control-group {
+      margin-bottom: 24px;
     }
 
-    .controls {
-      text-align: left;
-      background: #f8fafd;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-      display: inline-block;
-      padding: 14px 20px;
-      margin-bottom: 18px;
+    .control-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .value-display {
+      font-family: monospace;
+      font-size: 0.9rem;
+      width: 30px;
+      text-align: right;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
     }
 
     #dropZone {
-      border: 3px dashed #ccc;
-      border-radius: 12px;
-      padding: 20px;
+      border: 2px dashed var(--glass-border);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.02);
       margin-bottom: 20px;
-      transition: all 0.3s ease;
-      background: #fff;
-      display: inline-block;
-      min-width: 320px;
     }
 
     #dropZone.dragover {
-      border-color: #4A90E2;
-      background: #eef6ff;
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
       transform: scale(1.02);
     }
 
-    button {
-      padding: 8px 16px;
-      font-weight: bold;
-      border-radius: 4px;
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
       border: none;
+      font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    button:hover {
-      opacity: 0.8;
+      transition: all 0.2s;
+      margin-bottom: 10px;
     }
 
     #processBtn {
-      background-color: #4CAF50;
+      background: var(--primary);
       color: white;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    #processBtn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
     }
 
     #saveBtn {
-      background-color: #2196F3;
+      background: transparent;
+      border: 1px solid var(--glass-border);
       color: white;
-      margin-left: 10px;
+    }
+
+    #saveBtn:not(:disabled):hover {
+      background: var(--glass);
+    }
+
+    #saveBtn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .preview-area {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 0% 0% / 20px 20px;
+      cursor: crosshair;
+    }
+
+    #maskCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: none;
+      display: none;
+      z-index: 5;
+    }
+
+    .canvas-label {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      backdrop-filter: blur(4px);
+    }
+
+    .color-select {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    #colorBox {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 2px solid white;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    footer {
+      margin-top: auto;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 900px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <h1>半透明PNG作成ツール</h1>
-  <h2>レイヤー合成用の半透明素材を手軽に作成</h2>
-  <p class="description" style="max-width:500px; margin: 0 auto 18px auto;">
-    レイヤー合成用の半透明素材を手軽に作成できるアプリです。<br>
-    「変換実行」後に表示された画像は、右クリック（スマホの場合は長押しなど）で保存してご利用いただけます。<br>
-    画像データはサーバーに送信されないため、安心してお使いいただけます。
-  </p>
+  <h1>Transparent PNG Studio</h1>
+  <p class="subtitle">プレミアムな半透明素材を、驚くほど簡単に。</p>
 
-  <br>
-  <div id="dropZone">
-    <div class="controls">
-      <!-- ステップ1: ファイル選択 -->
-      <div style="margin-bottom: 12px;">
-        <label for="fileInput"><strong>1. 画像ファイルを選択、またはここにドラッグ＆ドロップ：</strong></label><br>
-        <input type="file" id="fileInput" accept="image/*" style="margin-top: 8px;">
+  <div class="main-container">
+    <!-- Controls Panel -->
+    <div class="glass-panel">
+      <div id="dropZone">
+        <p style="font-size: 0.9rem; margin: 0; color: var(--text-muted);">
+          ドラッグ＆ドロップ、または
+        </p>
+        <input type="file" id="fileInput" accept="image/*" style="margin-top: 12px; width: 100%; cursor: pointer;">
       </div>
 
-    <!-- ステップ2: 色選択 -->
-    <div style="margin-bottom: 12px;">
-      <strong>2. 透明にしたい色を画像上でクリック</strong>
-      <span>選択色：</span>
-      <div id="colorBox" class="palette"
-        style="display:inline-block; vertical-align:middle; width:24px; height:24px; border:1px solid #ccc; margin-left:4px;">
+      <div class="color-select">
+        <div id="colorBox" style="background-color: #ffffff;"></div>
+        <div style="font-size: 0.85rem;">
+          <strong>透明にする色</strong><br>
+          <span style="color: var(--text-muted);">画像をクリックして選択</span>
+        </div>
       </div>
-    </div>
 
-    <!-- ステップ3: パラメータ調整 -->
-    <div style="margin-bottom: 12px;">
-      <label><strong>3. 色の範囲：</strong>
-        <input type="range" id="intensity" min="0" max="255" value="60">
-      </label>
-      <br>
-      <label><strong>4. 透過度の強さ：</strong>
-        <input type="range" id="strength" min="0" max="255" value="200">
-      </label>
-    </div>
+      <div class="control-group">
+        <label>色の許容範囲 (Intensity)</label>
+        <div class="slider-box">
+          <input type="range" id="intensity" min="0" max="255" value="60">
+          <span class="value-display" id="intensityValue">60</span>
+        </div>
+      </div>
 
-    <!-- ステップ4: オプション -->
-    <div style="margin-bottom: 12px;">
-      <label>
-        <input type="checkbox" id="fullTransparentMode">
-        オプション．被写体以外を完全に透明にする
-      </label>
-      <div id="bgThresholdControl" style="display:none; margin-top:8px;">
-        <label>
-          四隅が背景の場合、それの近似色を完全に透明にすることができます。<br>
-          背景判定の閾値：
-          <input type="range" id="bgThreshold" min="5" max="100" value="40">
-          <span id="bgThresholdValue">40</span>
+      <div class="control-group">
+        <label>透過の強さ (Strength)</label>
+        <div class="slider-box">
+          <input type="range" id="strength" min="0" max="255" value="200">
+          <span class="value-display" id="strengthValue">200</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="checkbox-container">
+          <input type="checkbox" id="fullTransparentMode" checked>
+          背景をAI検知して完全透過する
         </label>
+
+        <label class="checkbox-container">
+          <input type="checkbox" id="showMask">
+          背景の判定エリアを可視化する (Mask Overlay)
+        </label>
+
+        <div id="bgThresholdControl">
+          <div style="margin-bottom: 12px;">
+            <label>背景の一致度 (BG Threshold)</label>
+            <div class="slider-box">
+              <input type="range" id="bgThreshold" min="5" max="100" value="30">
+              <span class="value-display" id="bgThresholdValue">30</span>
+            </div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label>境界の判定範囲 (Edge Detection Range)</label>
+            <div class="slider-box">
+              <input type="range" id="edgeRadius" min="1" max="5" value="1">
+              <span class="value-display" id="edgeRadiusValue">1</span>
+            </div>
+          </div>
+          <div>
+            <label>境界の敏感度 (Gradient Sensitivity)</label>
+            <div class="slider-box">
+              <input type="range" id="gradThreshold" min="1" max="100" value="70">
+              <span class="value-display" id="gradThresholdValue">70</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
+              値を上げるほど、境界のわずかな変化を敏感に捉えて保護（停止）します。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>境界の滑らかさ (Smoothing Size)</label>
+        <div class="slider-box">
+          <input type="range" id="smoothRadius" min="0" max="4" value="1">
+          <span class="value-display" id="smoothRadiusValue">1</span>
+        </div>
+      </div>
+
+      <button id="processBtn" class="btn">変換を実行</button>
+      <button id="saveBtn" class="btn" disabled>画像を書き出す</button>
+    </div>
+
+    <!-- Preview Area -->
+    <div class="preview-area">
+      <div class="canvas-wrapper">
+        <span class="canvas-label">Original</span>
+        <canvas id="originalCanvas" width="400" height="300"></canvas>
+      </div>
+      <div class="canvas-wrapper">
+        <span class="canvas-label">Result</span>
+        <canvas id="resultCanvas" width="400" height="300"></canvas>
+        <canvas id="maskCanvas" width="400" height="300"></canvas>
       </div>
     </div>
-
-    <!-- 「変換実行」ボタン部分の修正版 -->
-    <div style="margin-bottom: 12px;">
-      <label><strong>5. 変換を実行：</strong></label>
-      <button id="processBtn">変換実行</button>
-      <button id="saveBtn" disabled>画像を保存</button>
-    </div>
-  </div>
   </div>
 
-  <div>
-    <canvas id="originalCanvas" width="300" height="300" style="width:300px; height:300px;"
-      class="checkerboard"></canvas>
-    <canvas id="resultCanvas" width="300" height="300" style="width:300px; height:300px;" class="checkerboard"></canvas>
-  </div>
   <footer>
-    <p>&copy; 2025 DS Soft. All rights reserved.<br>
+    &copy; 2025 Transparent PNG Studio. Developed with advanced color algorithms.
   </footer>
+
   <script src="transpng.js"></script>
 </body>
 
